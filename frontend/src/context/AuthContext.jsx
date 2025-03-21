@@ -4,16 +4,15 @@ import { createContext, useState, useEffect } from "react";
 export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  // Initialize state from localStorage
   const [token, setToken] = useState(localStorage.getItem("token") || null);
   const [role, setRole] = useState(localStorage.getItem("role") || null);
 
-  // Sync token with localStorage
   useEffect(() => {
     if (token) localStorage.setItem("token", token);
     else localStorage.removeItem("token");
   }, [token]);
 
-  // Sync role with localStorage
   useEffect(() => {
     if (role) localStorage.setItem("role", role);
     else localStorage.removeItem("role");

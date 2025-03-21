@@ -1,3 +1,4 @@
+// src/pages/Register.jsx
 import { useForm } from "react-hook-form";
 import { TextField, Button, Container, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";

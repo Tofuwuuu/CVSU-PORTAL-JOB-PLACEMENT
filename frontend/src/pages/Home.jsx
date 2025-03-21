@@ -1,10 +1,10 @@
-import { Container, Typography } from "@mui/material";
-
+// src/pages/Home.jsx
 function Home() {
   return (
-    <Container>
-      <Typography variant="h4" mt={4}>Welcome to CvSU Carmona Alumni System</Typography>
-    </Container>
+    <div style={{ padding: "2rem" }}>
+      <h2>Welcome to the CvSU Alumni Portal</h2>
+      <p>This is the public home page accessible to everyone.</p>
+    </div>
   );
 }
 
