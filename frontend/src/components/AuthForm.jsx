@@ -32,6 +32,9 @@ export function AuthProvider({ children }) {
     setRole(null);
   };
 
+  const { isAuthenticated, user } = useContext(AuthContext);
+  console.log(user); // Should log: { id: 1, role: "admin", email: "admin@cvsu.edu" }
+
   return (
     <AuthContext.Provider
       value={{ token, role, isAuthenticated, isAdmin, login, logout }}

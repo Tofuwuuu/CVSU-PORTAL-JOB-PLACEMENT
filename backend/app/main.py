@@ -47,3 +47,11 @@ async def admin_dashboard(user: dict = Depends(get_current_user)):
     if user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Access forbidden: Admins only")
     return {"message": f"Welcome, Admin {user['email']}!"}
+
+# PROTECTED USER DASHBOARD ROUTE
+@app.get("/api/dashboard")
+async def get_dashboard(user: dict = Depends(get_current_user)):
+    print("Decoded user:", user)  # Debugging line
+    if user["role"] == "admin":
+        raise HTTPException(status_code=403, detail="Admins should use /api/admin instead.")
+    return {"message": f"Welcome to the user dashboard, {user['email']}!"}

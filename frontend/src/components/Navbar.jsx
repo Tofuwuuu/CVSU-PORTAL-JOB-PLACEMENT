@@ -5,7 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 import { AppBar, Toolbar, Typography, Button, Box } from "@mui/material";
 
 function Navbar() {
-  const { isAuthenticated, isAdmin, logout } = useContext(AuthContext);
+  const { isAuthenticated, role, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -22,21 +22,22 @@ function Navbar() {
 
         <Box sx={{ display: "flex", gap: "1rem" }}>
           <Button color="inherit" component={Link} to="/">Home</Button>
-
           {isAuthenticated ? (
-            <>
-              {isAdmin && (
+            role === "admin" ? (
+              <>
                 <Button color="inherit" component={Link} to="/admin">
                   Admin Dashboard
                 </Button>
-              )}
-              <Button color="inherit" component={Link} to="/dashboard">
-                Dashboard
-              </Button>
-              <Button color="inherit" onClick={handleLogout}>
-                Logout
-              </Button>
-            </>
+                <Button color="inherit" onClick={handleLogout}>Logout</Button>
+              </>
+            ) : (
+              <>
+                <Button color="inherit" component={Link} to="/dashboard">
+                  Dashboard
+                </Button>
+                <Button color="inherit" onClick={handleLogout}>Logout</Button>
+              </>
+            )
           ) : (
             <>
               <Button color="inherit" component={Link} to="/login">
