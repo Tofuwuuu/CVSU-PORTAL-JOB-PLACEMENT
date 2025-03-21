@@ -1,28 +1,54 @@
-import { useForm } from "react-hook-form";
-import { TextField, Button, Container, Typography } from "@mui/material";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { setToken, setRole } from "../auth";
+import { TextField, Button, Container, Typography, Alert } from "@mui/material";
 
 function Login() {
-  const { register, handleSubmit } = useForm();
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const onSubmit = async (data) => {
+  // Handle input changes
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // Handle login submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(""); // Clear previous errors
+
     try {
-      const response = await axios.post("http://localhost:5000/api/login", data);
-      localStorage.setItem("token", response.data.token);
-      navigate("/dashboard");
-    } catch (error) {
-      console.error("Login failed", error);
+      const response = await axios.post("http://127.0.0.1:8000/api/login", formData);
+      setToken(response.data.access_token); // Store JWT token
+      setRole(response.data.role); // Store user role
+      navigate(response.data.role === "admin" ? "/admin" : "/dashboard"); // Redirect based on role
+    } catch (err) {
+      setError("Invalid email or password");
     }
   };
 
   return (
     <Container maxWidth="xs">
       <Typography variant="h4" gutterBottom>Login</Typography>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <TextField fullWidth label="Email" {...register("email")} margin="normal" />
-        <TextField fullWidth label="Password" type="password" {...register("password")} margin="normal" />
+      {error && <Alert severity="error">{error}</Alert>}
+      <form onSubmit={handleSubmit}>
+        <TextField 
+          fullWidth 
+          label="Email" 
+          name="email" 
+          onChange={handleChange} 
+          margin="normal" 
+        />
+        <TextField 
+          fullWidth 
+          label="Password" 
+          type="password" 
+          name="password" 
+          onChange={handleChange} 
+          margin="normal" 
+        />
         <Button type="submit" variant="contained" color="primary" fullWidth>
           Login
         </Button>

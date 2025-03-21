@@ -1,21 +1,21 @@
 import { AppBar, Toolbar, Typography, Button } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
+import { isAuthenticated, removeToken } from "../auth";
 
 function Navbar() {
   const navigate = useNavigate();
-  const isAuthenticated = localStorage.getItem("token");
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    removeToken();
     navigate("/login");
   };
 
   return (
     <AppBar position="static" color="primary">
       <Toolbar>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>CvSU Carmona Alumni</Typography>
+        <Typography variant="h6" sx={{ flexGrow: 1 }}>CvSU Alumni</Typography>
         <Button color="inherit" component={Link} to="/">Home</Button>
-        {isAuthenticated ? (
+        {isAuthenticated() ? (
           <>
             <Button color="inherit" component={Link} to="/dashboard">Dashboard</Button>
             <Button color="inherit" onClick={handleLogout}>Logout</Button>

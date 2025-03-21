@@ -1,40 +1,34 @@
-import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { CssBaseline } from "@mui/material";
 import { Routes, Route, Navigate } from "react-router-dom";
-import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
-
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: "#006400", // CvSU Green
-    },
-    secondary: {
-      main: "#228B22",
-    },
-    background: {
-      default: "#f4f4f4",
-    },
-  },
-});
+import AdminDashboard from "./pages/AdminDashboard";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import Navbar from "./components/Navbar";
+import { isAuthenticated, isAdmin } from "./auth";
 
 function App() {
-  const isAuthenticated = localStorage.getItem("token"); // Check if logged in
-
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <>
       <Navbar />
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
+        <Route path="/login" element={isAuthenticated() ? <Navigate to={isAdmin() ? "/admin" : "/dashboard"} /> : <Login />} />
+        <Route path="/register" element={isAuthenticated() ? <Navigate to={isAdmin() ? "/admin" : "/dashboard"} /> : <Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+
+        {/* Protected Routes */}
+        <Route path="/dashboard" element={isAuthenticated() ? <Dashboard /> : <Navigate to="/login" />} />
+        <Route path="/admin" element={isAuthenticated() && isAdmin() ? <AdminDashboard /> : <Navigate to="/dashboard" />} />
+
+        {/* Catch-All: Redirect unknown routes */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-    </ThemeProvider>
+    </>
   );
 }
 

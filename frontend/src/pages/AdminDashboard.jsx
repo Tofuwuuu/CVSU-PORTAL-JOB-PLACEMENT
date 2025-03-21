@@ -4,7 +4,7 @@ import axios from "axios";
 import { getToken, removeToken } from "../auth";
 import { Container, Typography, Button } from "@mui/material";
 
-function Dashboard() {
+function AdminDashboard() {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
@@ -16,7 +16,7 @@ function Dashboard() {
       return;
     }
 
-    axios.get("http://127.0.0.1:8000/api/dashboard", {
+    axios.get("http://127.0.0.1:8000/api/admin", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((response) => setMessage(response.data.message))
@@ -34,6 +34,7 @@ function Dashboard() {
   return (
     <Container>
       <Typography variant="h4" gutterBottom>{message}</Typography>
+      <Typography variant="body1">This is the admin-only dashboard.</Typography>
       <Button variant="contained" color="secondary" onClick={handleLogout}>
         Logout
       </Button>
@@ -41,4 +42,4 @@ function Dashboard() {
   );
 }
 
-export default Dashboard;
+export default AdminDashboard;
