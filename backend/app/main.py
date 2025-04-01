@@ -8,7 +8,7 @@ from app.models import UserCreate, UserLogin, UserResponse, Token
 from app.auth import hash_password, verify_password, create_access_token, get_current_user
 
 # Blockchain API URL (Replace with your actual blockchain verification endpoint)
-BLOCKCHAIN_API_URL = "https://blockchain.example.com/verify"
+BLOCKCHAIN_API_URL = "http://localhost:8001/verify"
 
 app = FastAPI()
 
@@ -66,7 +66,7 @@ async def get_dashboard(user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admins should use /api/admin instead.")
     return {"message": f"Welcome to the user dashboard, {user['email']}!"}
 
-# PROTECTED ADMIN ROUTE: Get all users
+# PROTECTED ADMIN ROUTE: Get all users (admin view)
 @app.get("/api/admin")
 async def admin_dashboard(user: dict = Depends(get_current_user)):
     if user["role"] != "admin":
@@ -95,7 +95,8 @@ async def verify_alumni_on_blockchain(alumni_id: str, user: dict = Depends(get_c
     if user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Access forbidden")
     
-    # Call the blockchain verification API with alumni_id
+    # Call the blockchain verification API with alumni_id.
+    # This example uses a REST API call; replace BLOCKCHAIN_API_URL with your actual endpoint.
     response = requests.post(BLOCKCHAIN_API_URL, json={"alumni_id": alumni_id})
     if response.status_code == 200:
         return {"message": "Verification successful", "status": response.json()}
