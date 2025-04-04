@@ -1,10 +1,13 @@
-from motor.motor_asyncio import AsyncIOMotorClient
+import motor.motor_asyncio
 
-MONGO_URI = "mongodb://localhost:27017"
-DB_NAME = "cvsu_alumni"
-
-client = AsyncIOMotorClient(MONGO_URI)
-db = client[DB_NAME]
+client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://localhost:27017")
+db = client["cvsu_portal"]
 
 async def get_user_collection():
     return db["users"]
+
+async def get_job_collection():
+    return db["jobs"]
+
+async def get_application_collection():
+    return db["applications"]

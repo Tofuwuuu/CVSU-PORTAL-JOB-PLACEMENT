@@ -1,4 +1,3 @@
-// src/App.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
@@ -8,9 +7,11 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import JobPostings from "./pages/JobPostings";
+import JobApplications from "./pages/JobApplications";
 
 function App() {
-  const { isAuthenticated, isAdmin } = useContext(AuthContext);
+  const { isAuthenticated, role } = useContext(AuthContext);
 
   return (
     <>
@@ -22,7 +23,7 @@ function App() {
           path="/login"
           element={
             isAuthenticated ? (
-              <Navigate to={isAdmin ? "/admin" : "/dashboard"} />
+              <Navigate to={role === "admin" ? "/admin" : "/dashboard"} />
             ) : (
               <Login />
             )
@@ -32,7 +33,7 @@ function App() {
           path="/register"
           element={
             isAuthenticated ? (
-              <Navigate to={isAdmin ? "/admin" : "/dashboard"} />
+              <Navigate to={role === "admin" ? "/admin" : "/dashboard"} />
             ) : (
               <Register />
             )
@@ -42,11 +43,23 @@ function App() {
         {/* Protected Routes */}
         <Route
           path="/dashboard"
-          element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
+          element={isAuthenticated && role === "student" ? <Dashboard /> : <Navigate to="/login" />}
         />
         <Route
           path="/admin"
-          element={isAuthenticated && isAdmin ? <AdminDashboard /> : <Navigate to="/dashboard" />}
+          element={isAuthenticated && role === "admin" ? <AdminDashboard /> : <Navigate to="/dashboard" />}
+        />
+        
+        {/* Job Postings - Restricted to Employers */}
+        <Route
+          path="/jobs"
+          element={isAuthenticated && role === "employer" ? <JobPostings /> : <Navigate to="/dashboard" />}
+        />
+
+        {/* Job Applications - Restricted to Students */}
+        <Route
+          path="/applications"
+          element={isAuthenticated && role === "student" ? <JobApplications /> : <Navigate to="/dashboard" />}
         />
 
         {/* Catch-All */}

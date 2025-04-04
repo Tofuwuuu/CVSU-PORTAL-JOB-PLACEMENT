@@ -1,27 +1,42 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import timedelta
-import requests  # For calling blockchain API
+import requests  # For calling external blockchain API if needed
 from bson import ObjectId
-from app.database import get_user_collection
-from app.models import UserCreate, UserLogin, UserResponse, Token
+from app.database import get_user_collection, get_job_collection, get_application_collection
+from app.models import UserCreate, UserLogin, UserResponse, Token, JobModel, ApplicationModel
 from app.auth import hash_password, verify_password, create_access_token, get_current_user
+from pydantic import BaseModel
+from typing import List, Optional
 
-# Blockchain API URL (Replace with your actual blockchain verification endpoint)
-BLOCKCHAIN_API_URL = "http://localhost:8001/verify"
+# Dummy blockchain verification function and model
+class VerificationRequest(BaseModel):
+    alumni_id: str
 
-app = FastAPI()
+def dummy_blockchain_verification(alumni_id: str):
+    if alumni_id:
+        return {"result": "success", "alumni_id": alumni_id, "message": "Alumni verified on blockchain"}
+    else:
+        raise HTTPException(status_code=400, detail="Invalid alumni ID")
 
-# Enable CORS middleware so that OPTIONS and other CORS requests are handled
+app = FastAPI(
+    title="CVSU Portal API",
+    description="Unified API for user authentication, blockchain verification, and job placement for CVSU Alumni Portal",
+    version="1.0.0"
+)
+
+# Enable CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update with your frontend URL in production
+    allow_origins=["*"],  # Update for production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# REGISTER a New User
+# --------------------------
+# Authentication Endpoints
+# --------------------------
 @app.post("/api/register", response_model=UserResponse)
 async def register_user(user: UserCreate):
     users = await get_user_collection()
@@ -38,15 +53,9 @@ async def register_user(user: UserCreate):
         "role": user.role
     }
     result = await users.insert_one(new_user)
-    new_user["_id"] = str(result.inserted_id)
-    return UserResponse(
-        id=new_user["_id"],
-        name=new_user["name"],
-        email=new_user["email"],
-        role=new_user["role"]
-    )
+    new_user["id"] = str(result.inserted_id)  # Ensure the field 'id' exists
+    return UserResponse(**new_user)
 
-# LOGIN User
 @app.post("/api/login", response_model=Token)
 async def login_user(user: UserLogin):
     users = await get_user_collection()
@@ -59,26 +68,28 @@ async def login_user(user: UserLogin):
     )
     return {"access_token": access_token, "token_type": "bearer", "role": db_user["role"]}
 
-# PROTECTED USER DASHBOARD ROUTE
+# --------------------------
+# User Endpoints
+# --------------------------
 @app.get("/api/dashboard")
 async def get_dashboard(user: dict = Depends(get_current_user)):
     if user["role"] == "admin":
         raise HTTPException(status_code=403, detail="Admins should use /api/admin instead.")
     return {"message": f"Welcome to the user dashboard, {user['email']}!"}
 
-# PROTECTED ADMIN ROUTE: Get all users (admin view)
+# --------------------------
+# Admin Endpoints
+# --------------------------
 @app.get("/api/admin")
 async def admin_dashboard(user: dict = Depends(get_current_user)):
     if user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Access forbidden: Admins only")
     users = await get_user_collection()
     user_list = await users.find({}, {"password": 0}).to_list(100)
-    # Convert ObjectId to string for each document
     for user_doc in user_list:
         user_doc["_id"] = str(user_doc["_id"])
     return user_list
 
-# ADMIN ROUTE: Get all alumni (users with role "user")
 @app.get("/api/admin/alumni")
 async def get_alumni_data(user: dict = Depends(get_current_user)):
     if user["role"] != "admin":
@@ -89,16 +100,93 @@ async def get_alumni_data(user: dict = Depends(get_current_user)):
         alumnus["_id"] = str(alumnus["_id"])
     return alumni
 
-# ADMIN ROUTE: Verify alumni on the blockchain
 @app.post("/api/admin/verify/{alumni_id}")
 async def verify_alumni_on_blockchain(alumni_id: str, user: dict = Depends(get_current_user)):
-    if user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="Access forbidden")
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Access forbidden: Admins only")
+    try:
+        result = dummy_blockchain_verification(alumni_id)
+        return {"message": "Verification successful", "status": result}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Verification failed: {str(e)}")
+
+# --------------------------
+# Job Placement Endpoints
+# --------------------------
+@app.post("/api/admin/job", response_model=JobModel)
+async def create_job(job: JobModel, user: dict = Depends(get_current_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Access forbidden: Admins only")
+    jobs = await get_job_collection()
+    result = await jobs.insert_one(job.dict())
+    job.id = str(result.inserted_id)
+    return job
+
+@app.get("/api/jobs", response_model=List[JobModel])
+async def list_jobs():
+    jobs = await get_job_collection()
+    job_list = await jobs.find({}).to_list(100)
+    for job in job_list:
+        job["id"] = str(job["_id"])
+    return job_list
+
+@app.put("/api/admin/job/{job_id}", response_model=JobModel)
+async def update_job(job_id: str, job: JobModel, user: dict = Depends(get_current_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Access forbidden: Admins only")
+    jobs = await get_job_collection()
+    result = await jobs.update_one({"_id": ObjectId(job_id)}, {"$set": job.dict()})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Job not found or not modified")
+    job.id = job_id
+    return job
+
+@app.delete("/api/admin/job/{job_id}")
+async def delete_job(job_id: str, user: dict = Depends(get_current_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Access forbidden: Admins only")
+    jobs = await get_job_collection()
+    result = await jobs.delete_one({"_id": ObjectId(job_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {"message": "Job deleted successfully"}
+
+@app.post("/api/user/apply", response_model=ApplicationModel)
+async def apply_for_job(application: ApplicationModel, user: dict = Depends(get_current_user)):
+    if user.get("role") != "user":
+        raise HTTPException(status_code=403, detail="Access forbidden: Alumni only")
+    applications = await get_application_collection()
+    result = await applications.insert_one(application.dict())
+    application.id = str(result.inserted_id)
+    return application
+
+
+@app.post("/api/admin/create_employer", response_model=UserResponse)
+async def create_employer(user: UserCreate, current_user: dict = Depends(get_current_user)):
+    # Only allow this if the current user is an admin
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Access forbidden: Admins only")
     
-    # Call the blockchain verification API with alumni_id.
-    # This example uses a REST API call; replace BLOCKCHAIN_API_URL with your actual endpoint.
-    response = requests.post(BLOCKCHAIN_API_URL, json={"alumni_id": alumni_id})
-    if response.status_code == 200:
-        return {"message": "Verification successful", "status": response.json()}
-    else:
-        raise HTTPException(status_code=400, detail="Verification failed")
+    # Enforce that the new user role must be 'employer'
+    if user.role != "employer":
+        raise HTTPException(status_code=400, detail="This endpoint is for creating employer accounts only. Set role to 'employer'.")
+    
+    users = await get_user_collection()
+    existing_user = await users.find_one({"email": user.email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Hash the password
+    hashed_pw = hash_password(user.password)
+    
+    # Create a new employer user
+    new_user = {
+        "name": user.name,
+        "email": user.email,
+        "password": hashed_pw,
+        "role": "employer"
+    }
+    result = await users.insert_one(new_user)
+    new_user["id"] = str(result.inserted_id)  # Map the inserted_id to 'id'
+    
+    return UserResponse(**new_user)

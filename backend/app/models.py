@@ -1,30 +1,39 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, Field
+from typing import Optional
 
-# ✅ User Registration Schema (Includes Role)
+# User Models
 class UserCreate(BaseModel):
     name: str
-    email: EmailStr
+    email: str
     password: str
-    role: str  # "admin" or "user"
+    role: str
 
-# ✅ User Login Schema (No Role Needed for Login)
 class UserLogin(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
-# ✅ User Response Schema (Include Role in Response)
 class UserResponse(BaseModel):
     id: str
     name: str
-    email: EmailStr
-    role: str  # Include role in response
+    email: str
+    role: str
 
-    class Config:
-        from_attributes = True
-
-# ✅ JWT Token Response Schema
 class Token(BaseModel):
     access_token: str
     token_type: str
-    role: str  # Include role in JWT response
+    role: str
 
+# Job Placement Models
+class JobModel(BaseModel):
+    id: Optional[str] = Field(default=None, alias="_id")
+    title: str
+    description: str
+    company: str
+    location: str
+    requirements: str
+
+class ApplicationModel(BaseModel):
+    id: Optional[str] = Field(default=None, alias="_id")
+    job_id: str
+    applicant_email: str
+    cover_letter: str

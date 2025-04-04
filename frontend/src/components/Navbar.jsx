@@ -1,4 +1,3 @@
-// src/components/Navbar.jsx
 import { useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -22,6 +21,7 @@ function Navbar() {
 
         <Box sx={{ display: "flex", gap: "1rem" }}>
           <Button color="inherit" component={Link} to="/">Home</Button>
+
           {isAuthenticated ? (
             role === "admin" ? (
               <>
@@ -34,6 +34,12 @@ function Navbar() {
               <>
                 <Button color="inherit" component={Link} to="/dashboard">
                   Dashboard
+                </Button>
+                <Button color="inherit" component={Link} to="/jobs">
+                  Job Postings
+                </Button>
+                <Button color="inherit" component={Link} to="/applications">
+                  Job Applications
                 </Button>
                 <Button color="inherit" onClick={handleLogout}>Logout</Button>
               </>
