@@ -43,23 +43,19 @@ function App() {
         {/* Protected Routes */}
         <Route
           path="/dashboard"
-          element={isAuthenticated && role === "student" ? <Dashboard /> : <Navigate to="/login" />}
+          element={isAuthenticated && role === "user" ? <Dashboard /> : <Navigate to="/login" />}
         />
         <Route
           path="/admin"
           element={isAuthenticated && role === "admin" ? <AdminDashboard /> : <Navigate to="/dashboard" />}
         />
-        
-        {/* Job Postings - Restricted to Employers */}
         <Route
           path="/jobs"
-          element={isAuthenticated && role === "employer" ? <JobPostings /> : <Navigate to="/dashboard" />}
+          element={isAuthenticated && (role === "employer" || role === "user") ? <JobPostings /> : <Navigate to="/login" />}
         />
-
-        {/* Job Applications - Restricted to Students */}
         <Route
           path="/applications"
-          element={isAuthenticated && role === "student" ? <JobApplications /> : <Navigate to="/dashboard" />}
+          element={isAuthenticated && role === "user" ? <JobApplications /> : <Navigate to="/dashboard" />}
         />
 
         {/* Catch-All */}

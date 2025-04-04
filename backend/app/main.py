@@ -9,6 +9,8 @@ from app.auth import hash_password, verify_password, create_access_token, get_cu
 from pydantic import BaseModel
 from typing import List, Optional
 
+
+
 # Dummy blockchain verification function and model
 class VerificationRequest(BaseModel):
     alumni_id: str
@@ -115,8 +117,9 @@ async def verify_alumni_on_blockchain(alumni_id: str, user: dict = Depends(get_c
 # --------------------------
 @app.post("/api/admin/job", response_model=JobModel)
 async def create_job(job: JobModel, user: dict = Depends(get_current_user)):
-    if user.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Access forbidden: Admins only")
+    # Allow only employers to create job postings
+    if user.get("role") != "employer":
+        raise HTTPException(status_code=403, detail="Access forbidden: Only employers can create job postings")
     jobs = await get_job_collection()
     result = await jobs.insert_one(job.dict())
     job.id = str(result.inserted_id)
@@ -127,19 +130,22 @@ async def list_jobs():
     jobs = await get_job_collection()
     job_list = await jobs.find({}).to_list(100)
     for job in job_list:
-        job["id"] = str(job["_id"])
+        job["id"] = str(job["_id"])  # Convert ObjectId to string and assign to "id"
+        job.pop("_id", None)          # Remove the original _id
     return job_list
 
-@app.put("/api/admin/job/{job_id}", response_model=JobModel)
-async def update_job(job_id: str, job: JobModel, user: dict = Depends(get_current_user)):
-    if user.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Access forbidden: Admins only")
+@app.post("/api/admin/job", response_model=JobModel)
+async def create_job(job: JobModel, user: dict = Depends(get_current_user)):
+    if user.get("role") != "employer":
+        raise HTTPException(status_code=403, detail="Access forbidden: Only employers can create job postings")
     jobs = await get_job_collection()
-    result = await jobs.update_one({"_id": ObjectId(job_id)}, {"$set": job.dict()})
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Job not found or not modified")
-    job.id = job_id
+    # Exclude the 'id' field so that MongoDB generates a new ObjectId
+    job_data = job.dict(exclude={"id"})
+    result = await jobs.insert_one(job_data)
+    # Update the job model with the generated ObjectId
+    job.id = str(result.inserted_id)
     return job
+
 
 @app.delete("/api/admin/job/{job_id}")
 async def delete_job(job_id: str, user: dict = Depends(get_current_user)):
@@ -159,6 +165,7 @@ async def apply_for_job(application: ApplicationModel, user: dict = Depends(get_
     result = await applications.insert_one(application.dict())
     application.id = str(result.inserted_id)
     return application
+
 
 
 @app.post("/api/admin/create_employer", response_model=UserResponse)
@@ -190,3 +197,13 @@ async def create_employer(user: UserCreate, current_user: dict = Depends(get_cur
     new_user["id"] = str(result.inserted_id)  # Map the inserted_id to 'id'
     
     return UserResponse(**new_user)
+
+@app.post("/api/user/apply", response_model=ApplicationModel)
+async def apply_for_job(application: ApplicationModel, user: dict = Depends(get_current_user)):
+    if user.get("role") != "student":
+        raise HTTPException(status_code=403, detail="Access forbidden: Alumni only")
+    applications = await get_application_collection()
+    result = await applications.insert_one(application.dict())
+    application.id = str(result.inserted_id)
+    return application
+
