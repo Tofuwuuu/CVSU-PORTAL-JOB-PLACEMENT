@@ -218,3 +218,14 @@ async def apply_for_job(application: ApplicationModel, user: dict = Depends(get_
     
     return application
 
+@app.get("/api/employer/applications/{job_id}", response_model=List[ApplicationModel])
+async def get_applications_for_job(job_id: str, user: dict = Depends(get_current_user)):
+    if user.get("role") != "employer":
+        raise HTTPException(status_code=403, detail="Access forbidden: Only employers can view applications")
+    
+    applications = await get_application_collection()
+    app_list = await applications.find({"job_id": job_id}).to_list(100)
+    for app in app_list:
+        app["id"] = str(app["_id"])
+        app.pop("_id", None)
+    return app_list

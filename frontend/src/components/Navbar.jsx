@@ -23,24 +23,37 @@ function Navbar() {
           <Button color="inherit" component={Link} to="/">Home</Button>
 
           {isAuthenticated ? (
-            <>
-              {role === "admin" && (
+            role === "admin" ? (
+              <>
                 <Button color="inherit" component={Link} to="/admin">
                   Admin Dashboard
                 </Button>
-              )}
-              {(role === "employer" || role === "user") && (
+                <Button color="inherit" onClick={handleLogout}>Logout</Button>
+              </>
+            ) : role === "employer" ? (
+              <>
                 <Button color="inherit" component={Link} to="/jobs">
                   Job Postings
                 </Button>
-              )}
-              {role === "user" && (
+                <Button color="inherit" component={Link} to="/employer/applications">
+                  View Applications
+                </Button>
+                <Button color="inherit" onClick={handleLogout}>Logout</Button>
+              </>
+            ) : ( // For students (role "user")
+              <>
+                <Button color="inherit" component={Link} to="/dashboard">
+                  Dashboard
+                </Button>
+                <Button color="inherit" component={Link} to="/jobs">
+                  Job Postings
+                </Button>
                 <Button color="inherit" component={Link} to="/applications">
                   Job Applications
                 </Button>
-              )}
-              <Button color="inherit" onClick={handleLogout}>Logout</Button>
-            </>
+                <Button color="inherit" onClick={handleLogout}>Logout</Button>
+              </>
+            )
           ) : (
             <>
               <Button color="inherit" component={Link} to="/login">Login</Button>

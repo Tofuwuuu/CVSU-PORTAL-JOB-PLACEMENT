@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import JobPostings from "./pages/JobPostings";
 import JobApplications from "./pages/JobApplications";
+import EmployerApplications from "./pages/EmployerApplications"; // New page for employer view
 
 function App() {
   const { isAuthenticated, role } = useContext(AuthContext);
@@ -56,6 +57,10 @@ function App() {
         <Route
           path="/applications"
           element={isAuthenticated && role === "user" ? <JobApplications /> : <Navigate to="/dashboard" />}
+        />
+        <Route
+          path="/employer/applications"
+          element={isAuthenticated && role === "employer" ? <EmployerApplications /> : <Navigate to="/dashboard" />}
         />
 
         {/* Catch-All */}
