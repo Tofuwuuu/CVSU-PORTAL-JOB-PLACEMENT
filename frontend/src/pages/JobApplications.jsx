@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Container, Typography, TextField, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Snackbar, Alert } from "@mui/material";
+import {
+  Container,
+  Typography,
+  TextField,
+  Button,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Snackbar,
+  Alert,
+} from "@mui/material";
 import { getToken } from "../auth";
 
 function JobApplications() {
@@ -9,7 +23,7 @@ function JobApplications() {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const token = getToken();
 
-  // Load job postings to display available jobs
+  // Load available jobs to display for reference
   const loadJobs = async () => {
     try {
       const response = await axios.get("http://127.0.0.1:8000/api/jobs");
@@ -23,35 +37,39 @@ function JobApplications() {
     loadJobs();
   }, []);
 
-  // Handle form input change
+  // Handle changes in the application form
   const handleInputChange = (e) => {
     setApplication({ ...application, [e.target.name]: e.target.value });
   };
 
-  // Submit job application
+  // Submit the job application
   const handleApply = async (e) => {
     e.preventDefault();
     try {
       const response = await axios.post("http://127.0.0.1:8000/api/user/apply", application, {
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${token}`,
         },
       });
       setSnackbar({ open: true, message: "Application submitted successfully!", severity: "success" });
-      // Optionally reset the form
       setApplication({ job_id: "", cover_letter: "" });
     } catch (error) {
       console.error("Error applying for job:", error);
+      // Convert error detail to a string if it's an object
+      const errDetail = error.response?.data?.detail;
+      const errMsg =
+        typeof errDetail === "object" ? JSON.stringify(errDetail) : errDetail || error.message;
       setSnackbar({
         open: true,
-        message: "Application submission failed: " + (error.response?.data?.detail || error.message),
-        severity: "error"
+        message: "Application submission failed: " + errMsg,
+        severity: "error",
       });
     }
   };
+  
 
-  // Snackbar close handler
+  // Close snackbar notification
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
   };
@@ -60,6 +78,7 @@ function JobApplications() {
     <Container>
       <Typography variant="h4" gutterBottom>Job Applications</Typography>
       
+      {/* Application Form */}
       <Paper style={{ padding: "16px", marginBottom: "16px" }}>
         <Typography variant="h6" gutterBottom>Apply for a Job</Typography>
         <form onSubmit={handleApply}>
@@ -89,6 +108,7 @@ function JobApplications() {
         </form>
       </Paper>
 
+      {/* Available Job Postings (Reference) */}
       <Typography variant="h5" gutterBottom>Available Job Postings</Typography>
       <TableContainer component={Paper}>
         <Table>

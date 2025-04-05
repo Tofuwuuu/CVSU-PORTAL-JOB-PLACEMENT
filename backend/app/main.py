@@ -130,8 +130,8 @@ async def list_jobs():
     jobs = await get_job_collection()
     job_list = await jobs.find({}).to_list(100)
     for job in job_list:
-        job["id"] = str(job["_id"])  # Convert ObjectId to string and assign to "id"
-        job.pop("_id", None)          # Remove the original _id
+        job["id"] = str(job["_id"])  # Convert ObjectId to string
+        job.pop("_id", None)         # Remove the original _id field
     return job_list
 
 @app.post("/api/admin/job", response_model=JobModel)
@@ -139,12 +139,13 @@ async def create_job(job: JobModel, user: dict = Depends(get_current_user)):
     if user.get("role") != "employer":
         raise HTTPException(status_code=403, detail="Access forbidden: Only employers can create job postings")
     jobs = await get_job_collection()
-    # Exclude the 'id' field so that MongoDB generates a new ObjectId
+    # Exclude "id" so MongoDB can generate one
     job_data = job.dict(exclude={"id"})
     result = await jobs.insert_one(job_data)
-    # Update the job model with the generated ObjectId
     job.id = str(result.inserted_id)
     return job
+
+
 
 
 @app.delete("/api/admin/job/{job_id}")
@@ -200,10 +201,20 @@ async def create_employer(user: UserCreate, current_user: dict = Depends(get_cur
 
 @app.post("/api/user/apply", response_model=ApplicationModel)
 async def apply_for_job(application: ApplicationModel, user: dict = Depends(get_current_user)):
-    if user.get("role") != "student":
+    if user.get("role") != "user":
         raise HTTPException(status_code=403, detail="Access forbidden: Alumni only")
+    
+    # Create a dictionary from the application payload, excluding applicant_email
+    application_data = application.dict(exclude={"applicant_email"}, exclude_unset=True)
+    # Auto-populate applicant_email from the authenticated user
+    application_data["applicant_email"] = user["email"]
+    
     applications = await get_application_collection()
-    result = await applications.insert_one(application.dict())
+    result = await applications.insert_one(application_data)
+    
+    # Update the application model with the generated id and the applicant email
     application.id = str(result.inserted_id)
+    application.applicant_email = user["email"]
+    
     return application
 

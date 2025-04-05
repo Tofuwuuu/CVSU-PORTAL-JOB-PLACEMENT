@@ -23,17 +23,20 @@ class Token(BaseModel):
     token_type: str
     role: str
 
-# Job Placement Models
 class JobModel(BaseModel):
-    id: Optional[str] = Field(default=None, alias="_id")
+    id: Optional[str] = None  # Use "id" directly
     title: str
     description: str
     company: str
     location: str
     requirements: str
 
+    class Config:
+        orm_mode = True
+
+
 class ApplicationModel(BaseModel):
     id: Optional[str] = Field(default=None, alias="_id")
     job_id: str
-    applicant_email: str
+    applicant_email: Optional[str] = None  # Make applicant_email optional
     cover_letter: str

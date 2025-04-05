@@ -30,10 +30,8 @@ function JobPostings() {
 
   useEffect(() => {
     loadJobs();
-    // For debugging, log the jobs data
-    console.log("Loaded jobs:", jobs);
-  }, [jobs]);
-
+  }, []); // Only runs once
+  
   // Handle input changes in the new job form
   const handleInputChange = (e) => {
     setNewJob({ ...newJob, [e.target.name]: e.target.value });
