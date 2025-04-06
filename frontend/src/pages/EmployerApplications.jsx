@@ -23,10 +23,6 @@ function EmployerApplications() {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
   const token = getToken();
 
-  const handleInputChange = (e) => {
-    setJobId(e.target.value);
-  };
-
   // Function to load applications for a given job ID
   const loadApplications = async () => {
     try {
@@ -47,20 +43,44 @@ function EmployerApplications() {
     }
   };
 
+  // Function to update the status of an application
+  const updateStatus = async (applicationId, newStatus) => {
+    try {
+      const response = await axios.put(
+        `http://127.0.0.1:8000/api/employer/application/${applicationId}/status`,
+        { status: newStatus },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setSnackbar({ open: true, message: response.data.message, severity: "success" });
+      loadApplications();
+    } catch (error) {
+      console.error("Error updating application status:", error);
+      setSnackbar({
+        open: true,
+        message: "Status update failed: " + (error.response?.data?.detail || error.message),
+        severity: "error",
+      });
+    }
+  };
+
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
   return (
     <Container>
-      <Typography variant="h4" gutterBottom>Job Applications for a Specific Job</Typography>
-      
+      <Typography variant="h4" gutterBottom>Employer Applications</Typography>
       <Paper style={{ padding: "16px", marginBottom: "16px" }}>
-        <Typography variant="h6" gutterBottom>Enter Job ID</Typography>
+        <Typography variant="h6" gutterBottom>Enter Job ID to View Applications</Typography>
         <TextField
           label="Job ID"
           value={jobId}
-          onChange={handleInputChange}
+          onChange={(e) => setJobId(e.target.value)}
           fullWidth
           margin="normal"
           required
@@ -69,27 +89,45 @@ function EmployerApplications() {
           Load Applications
         </Button>
       </Paper>
-      
+
       {applications.length > 0 && (
         <>
-          <Typography variant="h5" gutterBottom>Applications</Typography>
+          <Typography variant="h5" gutterBottom>Applications for Job ID: {jobId}</Typography>
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
                 <TableRow>
                   <TableCell>Application ID</TableCell>
-                  <TableCell>Job ID</TableCell>
                   <TableCell>Applicant Email</TableCell>
                   <TableCell>Cover Letter</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {applications.map((app) => (
                   <TableRow key={app.id}>
                     <TableCell>{app.id}</TableCell>
-                    <TableCell>{app.job_id}</TableCell>
                     <TableCell>{app.applicant_email}</TableCell>
                     <TableCell>{app.cover_letter}</TableCell>
+                    <TableCell>{app.status}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="contained"
+                        color="success"
+                        onClick={() => updateStatus(app.id, "accepted")}
+                        style={{ marginRight: "8px" }}
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="error"
+                        onClick={() => updateStatus(app.id, "declined")}
+                      >
+                        Decline
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

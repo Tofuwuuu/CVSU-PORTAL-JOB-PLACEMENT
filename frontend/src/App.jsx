@@ -1,3 +1,4 @@
+// frontend/src/App.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
@@ -9,7 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import JobPostings from "./pages/JobPostings";
 import JobApplications from "./pages/JobApplications";
-import EmployerApplications from "./pages/EmployerApplications"; // New page for employer view
+import EmployerDashboard from "./pages/EmployerDashboard";  // Ensure correct import
 
 function App() {
   const { isAuthenticated, role } = useContext(AuthContext);
@@ -24,7 +25,7 @@ function App() {
           path="/login"
           element={
             isAuthenticated ? (
-              <Navigate to={role === "admin" ? "/admin" : "/dashboard"} />
+              <Navigate to={role === "admin" ? "/admin" : (role === "employer" ? "/employer/dashboard" : "/dashboard")} />
             ) : (
               <Login />
             )
@@ -34,7 +35,7 @@ function App() {
           path="/register"
           element={
             isAuthenticated ? (
-              <Navigate to={role === "admin" ? "/admin" : "/dashboard"} />
+              <Navigate to={role === "admin" ? "/admin" : (role === "employer" ? "/employer/dashboard" : "/dashboard")} />
             ) : (
               <Register />
             )
@@ -58,9 +59,10 @@ function App() {
           path="/applications"
           element={isAuthenticated && role === "user" ? <JobApplications /> : <Navigate to="/dashboard" />}
         />
+        {/* Employer Dashboard Route */}
         <Route
-          path="/employer/applications"
-          element={isAuthenticated && role === "employer" ? <EmployerApplications /> : <Navigate to="/dashboard" />}
+          path="/employer/dashboard"
+          element={isAuthenticated && role === "employer" ? <EmployerDashboard /> : <Navigate to="/login" />}
         />
 
         {/* Catch-All */}

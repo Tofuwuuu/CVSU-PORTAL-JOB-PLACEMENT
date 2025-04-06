@@ -38,5 +38,10 @@ class JobModel(BaseModel):
 class ApplicationModel(BaseModel):
     id: Optional[str] = Field(default=None, alias="_id")
     job_id: str
-    applicant_email: Optional[str] = None  # Make applicant_email optional
+    applicant_email: Optional[str] = None  # Auto-populated
     cover_letter: str
+    status: Optional[str] = "pending"  # New field; default is "pending"
+
+    class Config:
+        allow_population_by_field_name = True
+        orm_mode = True

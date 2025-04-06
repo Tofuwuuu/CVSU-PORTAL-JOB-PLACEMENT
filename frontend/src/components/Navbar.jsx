@@ -18,10 +18,8 @@ function Navbar() {
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
           CvSU Job Placement Portal
         </Typography>
-
         <Box sx={{ display: "flex", gap: "1rem" }}>
           <Button color="inherit" component={Link} to="/">Home</Button>
-
           {isAuthenticated ? (
             role === "admin" ? (
               <>
@@ -32,11 +30,11 @@ function Navbar() {
               </>
             ) : role === "employer" ? (
               <>
+                <Button color="inherit" component={Link} to="/employer/dashboard">
+                  Employer Dashboard
+                </Button>
                 <Button color="inherit" component={Link} to="/jobs">
                   Job Postings
-                </Button>
-                <Button color="inherit" component={Link} to="/employer/applications">
-                  View Applications
                 </Button>
                 <Button color="inherit" onClick={handleLogout}>Logout</Button>
               </>

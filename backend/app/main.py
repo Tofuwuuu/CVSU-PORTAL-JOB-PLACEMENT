@@ -117,11 +117,15 @@ async def verify_alumni_on_blockchain(alumni_id: str, user: dict = Depends(get_c
 # --------------------------
 @app.post("/api/admin/job", response_model=JobModel)
 async def create_job(job: JobModel, user: dict = Depends(get_current_user)):
-    # Allow only employers to create job postings
     if user.get("role") != "employer":
         raise HTTPException(status_code=403, detail="Access forbidden: Only employers can create job postings")
     jobs = await get_job_collection()
-    result = await jobs.insert_one(job.dict())
+    # Exclude the "id" field from the dictionary to allow MongoDB to generate _id
+    job_data = job.dict(exclude={"id"})
+    # Store employer's email for later filtering
+    job_data["employer_email"] = user["email"]
+    result = await jobs.insert_one(job_data)
+    # Assign the generated _id to job.id
     job.id = str(result.inserted_id)
     return job
 
@@ -130,8 +134,9 @@ async def list_jobs():
     jobs = await get_job_collection()
     job_list = await jobs.find({}).to_list(100)
     for job in job_list:
-        job["id"] = str(job["_id"])  # Convert ObjectId to string
-        job.pop("_id", None)         # Remove the original _id field
+        # Convert the generated _id to string and assign to "id"
+        job["id"] = str(job["_id"])
+        job.pop("_id", None)
     return job_list
 
 @app.post("/api/admin/job", response_model=JobModel)
@@ -139,8 +144,10 @@ async def create_job(job: JobModel, user: dict = Depends(get_current_user)):
     if user.get("role") != "employer":
         raise HTTPException(status_code=403, detail="Access forbidden: Only employers can create job postings")
     jobs = await get_job_collection()
-    # Exclude "id" so MongoDB can generate one
+    # Exclude the "id" field so that MongoDB auto-generates an _id
     job_data = job.dict(exclude={"id"})
+    # Save the employer's email along with the job posting
+    job_data["employer_email"] = user["email"]
     result = await jobs.insert_one(job_data)
     job.id = str(result.inserted_id)
     return job
@@ -161,10 +168,17 @@ async def delete_job(job_id: str, user: dict = Depends(get_current_user)):
 @app.post("/api/user/apply", response_model=ApplicationModel)
 async def apply_for_job(application: ApplicationModel, user: dict = Depends(get_current_user)):
     if user.get("role") != "user":
-        raise HTTPException(status_code=403, detail="Access forbidden: Alumni only")
+        raise HTTPException(status_code=403, detail="Access forbidden: Only students can apply for jobs")
+    
     applications = await get_application_collection()
-    result = await applications.insert_one(application.dict())
+    # Exclude applicant_email from the input so MongoDB doesn't get a null value
+    application_data = application.dict(exclude={"applicant_email"}, exclude_unset=True)
+    # Auto-populate applicant_email using the user's email from the token
+    application_data["applicant_email"] = user["email"]
+    
+    result = await applications.insert_one(application_data)
     application.id = str(result.inserted_id)
+    application.applicant_email = user["email"]
     return application
 
 
@@ -229,3 +243,52 @@ async def get_applications_for_job(job_id: str, user: dict = Depends(get_current
         app["id"] = str(app["_id"])
         app.pop("_id", None)
     return app_list
+
+@app.get("/api/employer/jobs", response_model=List[JobModel])
+async def list_employer_jobs(user: dict = Depends(get_current_user)):
+    if user.get("role") != "employer":
+        raise HTTPException(status_code=403, detail="Access forbidden: Only employers can access this endpoint")
+    jobs = await get_job_collection()
+    # Assuming you store an "employer_email" field when creating a job
+    job_list = await jobs.find({"employer_email": user["email"]}).to_list(100)
+    for job in job_list:
+        job["id"] = str(job["_id"])
+        job.pop("_id", None)
+    return job_list
+
+@app.get("/api/employer/job_stats", response_model=List[dict])
+async def get_job_stats(user: dict = Depends(get_current_user)):
+    if user.get("role") != "employer":
+        raise HTTPException(status_code=403, detail="Access forbidden: Only employers can access this endpoint")
+    jobs = await get_job_collection()
+    applications = await get_application_collection()
+    
+    # Filter jobs by the logged-in employer's email
+    job_list = await jobs.find({"employer_email": user["email"]}).to_list(100)
+    stats = []
+    for job in job_list:
+        job_id_str = str(job["_id"])
+        # Count applications with job_id equal to this job's id (ensure job_id is stored as string in applications)
+        app_count = await applications.count_documents({"job_id": job_id_str})
+        stats.append({
+            "job_id": job_id_str,
+            "title": job.get("title", ""),
+            "applications_count": app_count
+        })
+    return stats
+
+@app.put("/api/employer/application/{application_id}/status")
+async def update_application_status(application_id: str, status: str, user: dict = Depends(get_current_user)):
+    if user.get("role") != "employer":
+        raise HTTPException(status_code=403, detail="Access forbidden: Only employers can update application status")
+    
+    if status not in ["accepted", "declined"]:
+        raise HTTPException(status_code=400, detail="Status must be either 'accepted' or 'declined'")
+    
+    applications = await get_application_collection()
+    result = await applications.update_one({"_id": ObjectId(application_id)}, {"$set": {"status": status}})
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Application not found or status unchanged")
+    
+    return {"message": f"Application status updated to {status}"}
