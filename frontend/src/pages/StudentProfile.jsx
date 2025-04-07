@@ -1,10 +1,17 @@
+// frontend/src/pages/StudentProfile.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Container, Typography, TextField, Button, Snackbar, Alert } from "@mui/material";
 import { getToken } from "../auth";
 
 function StudentProfile() {
-  const [profile, setProfile] = useState({ name: "", email: "", skills: "" });
+  const [profile, setProfile] = useState({
+    name: "",
+    email: "",
+    skills: "",
+    bio: "",
+    resume_url: ""
+  });
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
   const token = getToken();
 
@@ -16,6 +23,7 @@ function StudentProfile() {
       setProfile(response.data);
     } catch (error) {
       console.error("Error loading profile:", error);
+      setSnackbar({ open: true, message: "Failed to load profile", severity: "error" });
     }
   };
 
@@ -30,8 +38,12 @@ function StudentProfile() {
   const handleUpdateProfile = async () => {
     try {
       const response = await axios.put("http://127.0.0.1:8000/api/user/profile", profile, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
+      setProfile(response.data);
       setSnackbar({ open: true, message: "Profile updated successfully", severity: "success" });
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -46,6 +58,8 @@ function StudentProfile() {
   return (
     <Container>
       <Typography variant="h4" gutterBottom>Student Profile</Typography>
+      <Typography variant="body1" gutterBottom>View and update your profile information.</Typography>
+      
       <TextField
         label="Name"
         name="name"
@@ -58,7 +72,6 @@ function StudentProfile() {
         label="Email"
         name="email"
         value={profile.email}
-        onChange={handleInputChange}
         fullWidth
         margin="normal"
         disabled
@@ -71,7 +84,25 @@ function StudentProfile() {
         fullWidth
         margin="normal"
       />
-      <Button variant="contained" color="primary" onClick={handleUpdateProfile}>
+      <TextField
+        label="Bio"
+        name="bio"
+        value={profile.bio}
+        onChange={handleInputChange}
+        fullWidth
+        margin="normal"
+        multiline
+        rows={4}
+      />
+      <TextField
+        label="Resume URL"
+        name="resume_url"
+        value={profile.resume_url}
+        onChange={handleInputChange}
+        fullWidth
+        margin="normal"
+      />
+      <Button variant="contained" color="primary" onClick={handleUpdateProfile} style={{ marginTop: "16px" }}>
         Update Profile
       </Button>
       

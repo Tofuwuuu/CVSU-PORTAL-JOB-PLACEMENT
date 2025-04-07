@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import Optional
 
 # User Models
@@ -38,9 +38,24 @@ class JobModel(BaseModel):
 class ApplicationModel(BaseModel):
     id: Optional[str] = Field(default=None, alias="_id")
     job_id: str
-    applicant_email: Optional[str] = None  # Auto-populated
+    applicant_email: Optional[str] = None
     cover_letter: str
-    status: Optional[str] = "pending"  # New field; default is "pending"
+    status: Optional[str] = "pending"
+
+    class Config:
+        allow_population_by_field_name = True
+        orm_mode = True
+
+class UpdateStatusRequest(BaseModel):
+    status: str
+
+class StudentProfileModel(BaseModel):
+    id: Optional[str] = Field(default=None, alias="_id")
+    name: str
+    email: EmailStr
+    skills: Optional[str] = None
+    resume_url: Optional[str] = None  # URL to an uploaded resume
+    bio: Optional[str] = None
 
     class Config:
         allow_population_by_field_name = True

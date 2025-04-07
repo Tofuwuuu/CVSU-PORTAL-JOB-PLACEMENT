@@ -10,7 +10,9 @@ import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import JobPostings from "./pages/JobPostings";
 import JobApplications from "./pages/JobApplications";
-import EmployerDashboard from "./pages/EmployerDashboard";  // Ensure correct import
+import EmployerDashboard from "./pages/EmployerDashboard";
+import StudentProfile from "./pages/StudentProfile";
+import JobDetail from "./pages/JobDetail"; // Import the new component
 
 function App() {
   const { isAuthenticated, role } = useContext(AuthContext);
@@ -48,6 +50,10 @@ function App() {
           element={isAuthenticated && role === "user" ? <Dashboard /> : <Navigate to="/login" />}
         />
         <Route
+          path="/profile"
+          element={isAuthenticated && role === "user" ? <StudentProfile /> : <Navigate to="/login" />}
+        />
+        <Route
           path="/admin"
           element={isAuthenticated && role === "admin" ? <AdminDashboard /> : <Navigate to="/dashboard" />}
         />
@@ -59,11 +65,12 @@ function App() {
           path="/applications"
           element={isAuthenticated && role === "user" ? <JobApplications /> : <Navigate to="/dashboard" />}
         />
-        {/* Employer Dashboard Route */}
         <Route
           path="/employer/dashboard"
           element={isAuthenticated && role === "employer" ? <EmployerDashboard /> : <Navigate to="/login" />}
         />
+        {/* New Detailed Job View Route */}
+        <Route path="/job/:jobId" element={<JobDetail />} />
 
         {/* Catch-All */}
         <Route path="*" element={<Navigate to="/" />} />
