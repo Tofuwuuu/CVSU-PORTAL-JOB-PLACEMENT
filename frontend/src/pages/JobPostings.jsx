@@ -1,9 +1,29 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
-import { Container, Typography, TextField, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Snackbar, Alert } from "@mui/material";
+import {
+  Container,
+  Typography,
+  TextField,
+  Button,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Snackbar,
+  Alert,
+  CircularProgress,
+  Collapse,
+  IconButton,
+  Box,
+} from "@mui/material";
+import { Link } from "react-router-dom";
 import { getToken } from "../auth";
-import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 
 function JobPostings() {
   const [jobs, setJobs] = useState([]);
@@ -12,68 +32,99 @@ function JobPostings() {
     description: "",
     company: "",
     location: "",
-    requirements: ""
+    requirements: "",
   });
+  const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [expandedJobs, setExpandedJobs] = useState({});
+
   const token = getToken();
   const { role } = useContext(AuthContext);
 
-  // Function to load all job postings
+  // Fetch job postings from backend API
   const loadJobs = async () => {
     try {
-      const response = await axios.get("http://127.0.0.1:8000/api/jobs");
-      setJobs(response.data);
+      const response = await axios.get("http://127.0.0.1:8000/api/jobs", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // Map each job so that it always has an "id" field (use job.id or fallback to job._id)
+      const jobsData = response.data.map((job) => ({
+        id: job.id || job._id,
+        title: job.title,
+        description: job.description,
+        company: job.company,
+        location: job.location,
+        requirements: job.requirements,
+      }));
+      setJobs(jobsData);
     } catch (error) {
       console.error("Error fetching job postings:", error);
+      setSnackbar({ open: true, message: "Failed to load job postings", severity: "error" });
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     loadJobs();
-  }, []); // Only runs once
-  
-  // Handle input changes in the new job form
+  }, [token]);
+
+  // Handle input for new job form (for employers)
   const handleInputChange = (e) => {
     setNewJob({ ...newJob, [e.target.name]: e.target.value });
   };
 
-  // Submit the new job posting (only for employers)
+  // Create a new job posting (employer only)
   const handleCreateJob = async (e) => {
     e.preventDefault();
     try {
       const response = await axios.post("http://127.0.0.1:8000/api/admin/job", newJob, {
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${token}`,
         },
       });
       setSnackbar({ open: true, message: "Job created successfully!", severity: "success" });
-      // Reset form
       setNewJob({ title: "", description: "", company: "", location: "", requirements: "" });
-      // Reload job postings
       loadJobs();
     } catch (error) {
       console.error("Error creating job:", error);
       setSnackbar({
         open: true,
         message: "Job creation failed: " + (error.response?.data?.detail || error.message),
-        severity: "error"
+        severity: "error",
       });
     }
   };
 
-  // Close the snackbar
+  // Toggle inline detailed view for a job posting
+  const toggleJobDetails = (jobId) => {
+    setExpandedJobs((prevState) => ({
+      ...prevState,
+      [jobId]: !prevState[jobId],
+    }));
+  };
+
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  if (loading) {
+    return (
+      <Container sx={{ textAlign: "center", mt: 4 }}>
+        <CircularProgress />
+        <Typography variant="body1" sx={{ mt: 2 }}>Loading job postings...</Typography>
+      </Container>
+    );
+  }
+
   return (
-    <Container>
+    <Container sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>Job Postings</Typography>
       
-      {/* Only show job creation form if user is an employer */}
+      {/* Job Creation Form (visible for employers only) */}
       {role === "employer" && (
-        <Paper style={{ padding: "16px", marginBottom: "16px" }}>
+        <Paper sx={{ p: 2, mb: 4 }}>
           <Typography variant="h6" gutterBottom>Create a New Job Posting</Typography>
           <form onSubmit={handleCreateJob}>
             <TextField
@@ -125,39 +176,58 @@ function JobPostings() {
               rows={2}
               required
             />
-            <Button variant="contained" color="primary" type="submit" style={{ marginTop: "16px" }}>
+            <Button variant="contained" color="primary" type="submit" sx={{ mt: 2 }}>
               Create Job
             </Button>
           </form>
         </Paper>
       )}
 
-      {/* Display all job postings (for both employers and students) */}
+      {/* Job Listings */}
       <Typography variant="h5" gutterBottom>Available Job Postings</Typography>
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Job ID</TableCell>
-              <TableCell>Title</TableCell>
-              <TableCell>Company</TableCell>
-              <TableCell>Location</TableCell>
-              <TableCell>Description</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {jobs.map((job) => (
-              <TableRow key={job.id}>
-                <TableCell>{job.id}</TableCell>
-                <TableCell>{job.title}</TableCell>
-                <TableCell>{job.company}</TableCell>
-                <TableCell>{job.location}</TableCell>
-                <TableCell>{job.description}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      {jobs.length === 0 ? (
+        <Typography>No job postings available at the moment.</Typography>
+      ) : (
+        jobs.map((job) => (
+          <Paper key={job.id} sx={{ p: 3, mb: 3 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Box>
+                <Typography variant="h6">{job.title}</Typography>
+                <Typography variant="subtitle1" color="text.secondary">
+                  {job.company} — {job.location}
+                </Typography>
+              </Box>
+              <Box>
+                <Button
+                  variant="outlined"
+                  sx={{ mr: 2 }}
+                  onClick={() => toggleJobDetails(job.id)}
+                >
+                  {expandedJobs[job.id] ? "Hide Details" : "View Details"}
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  component={Link}
+                  to={`/apply/${job.id}`}
+                >
+                  Apply Now
+                </Button>
+              </Box>
+            </Box>
+            <Collapse in={expandedJobs[job.id]} timeout="auto" unmountOnExit>
+              <Paper sx={{ mt: 2, p: 2 }}>
+                <Typography variant="body1">
+                  <strong>Description:</strong> {job.description}
+                </Typography>
+                <Typography variant="body1">
+                  <strong>Requirements:</strong> {job.requirements}
+                </Typography>
+              </Paper>
+            </Collapse>
+          </Paper>
+        ))
+      )}
 
       <Snackbar
         open={snackbar.open}

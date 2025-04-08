@@ -51,9 +51,7 @@ function Navbar() {
                 <Button color="inherit" component={Link} to="/jobs">
                   Job Postings
                 </Button>
-                <Button color="inherit" component={Link} to="/applications">
-                  Job Applications
-                </Button>
+                {/* Removed the Job Applications button below */}
                 <Button color="inherit" onClick={handleLogout}>Logout</Button>
               </>
             )
