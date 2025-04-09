@@ -22,14 +22,7 @@ function StudentProfile() {
     bio: "",
     resume_url: ""
   });
-  const [snackbar, setSnackbar] = useState({ 
-    open: false, 
-    message: "", 
-    severity: "info" 
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
   const token = getToken();
 
   const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api";
@@ -52,15 +45,7 @@ function StudentProfile() {
       setProfile(response.data);
     } catch (error) {
       console.error("Error loading profile:", error);
-      const message = error.response?.data?.message || "Failed to load profile";
-      setSnackbar({ open: true, message, severity: "error" });
-      
-      if (error.response?.status === 401) {
-        handleLogout();
-        window.location.href = "/login";
-      }
-    } finally {
-      setIsLoading(false);
+      setSnackbar({ open: true, message: "Failed to load profile", severity: "error" });
     }
   };
 
@@ -81,22 +66,14 @@ function StudentProfile() {
     
     setIsUpdating(true);
     try {
-      const response = await axios.put(
-        `${API_URL}/user/profile`,
-        profile,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setProfile(response.data);
-      setSnackbar({ 
-        open: true, 
-        message: "Profile updated successfully", 
-        severity: "success" 
+      const response = await axios.put("http://127.0.0.1:8000/api/user/profile", profile, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
+      setProfile(response.data);
+      setSnackbar({ open: true, message: "Profile updated successfully", severity: "success" });
     } catch (error) {
       console.error("Error updating profile:", error);
       const message = error.response?.data?.message || "Failed to update profile";
@@ -119,90 +96,56 @@ function StudentProfile() {
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-        Student Profile
-      </Typography>
+    <Container>
+      <Typography variant="h4" gutterBottom>Student Profile</Typography>
+      <Typography variant="body1" gutterBottom>View and update your profile information.</Typography>
       
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <TextField
-            label="Name *"
-            name="name"
-            value={profile.name}
-            onChange={handleInputChange}
-            fullWidth
-            error={!!errors.name}
-            helperText={errors.name}
-          />
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <TextField
-            label="Email"
-            name="email"
-            value={profile.email}
-            fullWidth
-            disabled
-          />
-        </Grid>
-        
-        <Grid item xs={12}>
-          <TextField
-            label="Skills"
-            name="skills"
-            value={profile.skills}
-            onChange={handleInputChange}
-            fullWidth
-            error={!!errors.skills}
-            helperText={errors.skills || "Comma-separated list (e.g., Python, JavaScript)"}
-          />
-        </Grid>
-        
-        <Grid item xs={12}>
-          <TextField
-            label="Bio"
-            name="bio"
-            value={profile.bio}
-            onChange={handleInputChange}
-            fullWidth
-            multiline
-            rows={4}
-            inputProps={{ maxLength: 500 }}
-            helperText={`${profile.bio.length}/500 characters`}
-          />
-        </Grid>
-        
-        <Grid item xs={12}>
-          <TextField
-            label="Resume URL"
-            name="resume_url"
-            value={profile.resume_url}
-            onChange={handleInputChange}
-            fullWidth
-            helperText={
-              <span>
-                Upload your resume to a file sharing service and paste the URL here.{" "}
-                <Link href="/upload-help" target="_blank">
-                  Learn how to upload
-                </Link>
-              </span>
-            }
-          />
-        </Grid>
-        
-        <Grid item xs={12} sx={{ mt: 2 }}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleUpdateProfile}
-            disabled={isUpdating}
-            startIcon={isUpdating ? <CircularProgress size={20} /> : null}
-          >
-            {isUpdating ? "Updating..." : "Update Profile"}
-          </Button>
-        </Grid>
-      </Grid>
-
+      <TextField
+        label="Name"
+        name="name"
+        value={profile.name}
+        onChange={handleInputChange}
+        fullWidth
+        margin="normal"
+      />
+      <TextField
+        label="Email"
+        name="email"
+        value={profile.email}
+        fullWidth
+        margin="normal"
+        disabled
+      />
+      <TextField
+        label="Skills"
+        name="skills"
+        value={profile.skills}
+        onChange={handleInputChange}
+        fullWidth
+        margin="normal"
+      />
+      <TextField
+        label="Bio"
+        name="bio"
+        value={profile.bio}
+        onChange={handleInputChange}
+        fullWidth
+        margin="normal"
+        multiline
+        rows={4}
+      />
+      <TextField
+        label="Resume URL"
+        name="resume_url"
+        value={profile.resume_url}
+        onChange={handleInputChange}
+        fullWidth
+        margin="normal"
+      />
+      <Button variant="contained" color="primary" onClick={handleUpdateProfile} style={{ marginTop: "16px" }}>
+        Update Profile
+      </Button>
+      
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}

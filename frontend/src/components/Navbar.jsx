@@ -1,4 +1,3 @@
-// frontend/src/components/Navbar.jsx
 import { useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -19,7 +18,6 @@ function Navbar() {
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
           CvSU Job Placement Portal
         </Typography>
-
         <Box sx={{ display: "flex", gap: "1rem" }}>
           <Button color="inherit" component={Link} to="/">Home</Button>
           {isAuthenticated ? (
@@ -44,9 +42,6 @@ function Navbar() {
               <>
                 <Button color="inherit" component={Link} to="/dashboard">
                   Dashboard
-                </Button>
-                <Button color="inherit" component={Link} to="/profile">
-                  Profile
                 </Button>
                 <Button color="inherit" component={Link} to="/jobs">
                   Job Postings

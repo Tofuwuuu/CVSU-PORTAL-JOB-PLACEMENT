@@ -8,14 +8,7 @@ from app.models import UserCreate, UserLogin, UserResponse, Token, JobModel, App
 from app.auth import hash_password, verify_password, create_access_token, get_current_user
 from pydantic import BaseModel
 from typing import List, Optional
-from app.database import get_application_collection
-from app.auth import get_current_user
-from app.models import UpdateStatusRequest  # Adjust import as needed
-from app.models import ApplicationModel
-from app.utils import send_email_notification
-from app.database import get_profile_collection
-from app.models import StudentProfileModel
-from app.models import JobModel 
+
 
 
 # Dummy blockchain verification function and model
@@ -178,22 +171,16 @@ async def apply_for_job(application: ApplicationModel, user: dict = Depends(get_
         raise HTTPException(status_code=403, detail="Access forbidden: Only students can apply for jobs")
     
     applications = await get_application_collection()
+    # Exclude applicant_email from the input so MongoDB doesn't get a null value
     application_data = application.dict(exclude={"applicant_email"}, exclude_unset=True)
+    # Auto-populate applicant_email using the user's email from the token
     application_data["applicant_email"] = user["email"]
+    
     result = await applications.insert_one(application_data)
     application.id = str(result.inserted_id)
     application.applicant_email = user["email"]
-    
-    # Send email notification to the employer
-    # You need to retrieve the employer's email; assume it's stored in the job posting.
-    # For demonstration, let's say the employer's email is "employer@cvsu.edu.ph"
-    send_email_notification(
-        recipient="employer@cvsu.edu.ph",
-        subject="New Job Application Received",
-        body=f"A new application for job {application_data.get('job_id')} has been submitted by {user['email']}."
-    )
-    
     return application
+
 
 
 @app.post("/api/admin/create_employer", response_model=UserResponse)
@@ -252,15 +239,10 @@ async def get_applications_for_job(job_id: str, user: dict = Depends(get_current
     
     applications = await get_application_collection()
     app_list = await applications.find({"job_id": job_id}).to_list(100)
-    
-    # Ensure we convert _id to a string and store it as "id"
     for app in app_list:
-        if "_id" in app:
-            app["id"] = str(app["_id"])
-            del app["_id"]
-    
+        app["id"] = str(app["_id"])
+        app.pop("_id", None)
     return app_list
-
 
 @app.get("/api/employer/jobs", response_model=List[JobModel])
 async def list_employer_jobs(user: dict = Depends(get_current_user)):
@@ -296,86 +278,17 @@ async def get_job_stats(user: dict = Depends(get_current_user)):
     return stats
 
 @app.put("/api/employer/application/{application_id}/status")
-async def update_application_status(
-    application_id: str,
-    update: UpdateStatusRequest,
-    user: dict = Depends(get_current_user)
-):
+async def update_application_status(application_id: str, status: str, user: dict = Depends(get_current_user)):
     if user.get("role") != "employer":
         raise HTTPException(status_code=403, detail="Access forbidden: Only employers can update application status")
     
-    if update.status not in ["accepted", "declined"]:
+    if status not in ["accepted", "declined"]:
         raise HTTPException(status_code=400, detail="Status must be either 'accepted' or 'declined'")
     
     applications = await get_application_collection()
-    
-    result = await applications.update_one(
-        {"_id": ObjectId(application_id)},
-        {"$set": {"status": update.status}}
-    )
+    result = await applications.update_one({"_id": ObjectId(application_id)}, {"$set": {"status": status}})
     
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Application not found or status unchanged")
     
-    # Retrieve the updated application to get the applicant's email
-    updated_application = await applications.find_one({"_id": ObjectId(application_id)})
-    applicant_email = updated_application.get("applicant_email", "unknown@example.com")
-    
-    send_email_notification(
-        recipient=applicant_email,
-        subject="Application Status Update",
-        body=f"Your application for job {updated_application.get('job_id')} has been {update.status}."
-    )
-    
-    return {"message": f"Application status updated to {update.status}"}
-
-# GET endpoint to retrieve a student's profile
-@app.get("/api/user/profile", response_model=StudentProfileModel)
-async def get_student_profile(user: dict = Depends(get_current_user)):
-    if user.get("role") != "user":
-        raise HTTPException(status_code=403, detail="Access forbidden: Only students have profiles")
-    
-    profiles = await get_profile_collection()
-    profile = await profiles.find_one({"email": user["email"]})
-    if not profile:
-        raise HTTPException(status_code=404, detail="Profile not found")
-    
-    # Convert MongoDB _id to string and assign to id
-    profile["id"] = str(profile["_id"])
-    del profile["_id"]
-    return profile
-
-# PUT endpoint to update a student's profile
-@app.put("/api/user/profile", response_model=StudentProfileModel)
-async def update_student_profile(updated_profile: StudentProfileModel, user: dict = Depends(get_current_user)):
-    if user.get("role") != "user":
-        raise HTTPException(status_code=403, detail="Access forbidden: Only students have profiles")
-    
-    profiles = await get_profile_collection()
-    result = await profiles.update_one(
-        {"email": user["email"]},
-        {"$set": updated_profile.dict(exclude_unset=True)}
-    )
-    
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Profile not updated")
-    
-    return await get_student_profile(user)
-
-@app.get("/api/job/{job_id}", response_model=JobModel)
-async def get_job_detail(job_id: str, user: dict = Depends(get_current_user)):
-    """
-    Retrieves full job details by job ID.
-    """
-    jobs = await get_job_collection()
-    try:
-        job = await jobs.find_one({"_id": ObjectId(job_id)})
-    except Exception as e:
-        raise HTTPException(status_code=400, detail="Invalid job ID format")
-    
-    if job:
-        job["id"] = str(job["_id"])  # Convert ObjectId to string
-        del job["_id"]
-        return job
-    else:
-        raise HTTPException(status_code=404, detail="Job not found")
+    return {"message": f"Application status updated to {status}"}
