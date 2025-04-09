@@ -1,11 +1,15 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 
+<<<<<<< HEAD
 # User Models
+=======
+>>>>>>> parent of e26d513 (adding Admin to database)
 class UserCreate(BaseModel):
     name: str
     email: str
     password: str
+<<<<<<< HEAD
     role: str
 
 class UserLogin(BaseModel):
@@ -45,3 +49,17 @@ class ApplicationModel(BaseModel):
     class Config:
         allow_population_by_field_name = True
         orm_mode = True
+=======
+
+class UserResponse(BaseModel):
+    id: str
+    name: str
+    email: EmailStr
+
+    class Config:
+        from_attributes = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+>>>>>>> parent of e26d513 (adding Admin to database)

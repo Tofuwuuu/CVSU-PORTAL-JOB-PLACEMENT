@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status
+<<<<<<< HEAD
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import timedelta
 import requests  # For calling external blockchain API if needed
@@ -10,9 +11,16 @@ from pydantic import BaseModel
 from typing import List, Optional
 <<<<<<< HEAD
 =======
+=======
+from app.database import get_user_collection
+from app.models import UserCreate, UserResponse, Token
+from app.auth import hash_password, verify_password, create_access_token
+from datetime import timedelta
+>>>>>>> parent of e26d513 (adding Admin to database)
 
 >>>>>>> parent of e9a4337 (job and student profile)
 
+<<<<<<< HEAD
 
 
 def dummy_blockchain_verification(alumni_id: str):
@@ -39,12 +47,17 @@ app.add_middleware(
 # --------------------------
 # Authentication Endpoints
 # --------------------------
+=======
+# Register a New User
+>>>>>>> parent of e26d513 (adding Admin to database)
 @app.post("/api/register", response_model=UserResponse)
 async def register_user(user: UserCreate):
     users = await get_user_collection()
     existing_user = await users.find_one({"email": user.email})
+
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
+<<<<<<< HEAD
     if user.role not in ["admin", "user"]:
         raise HTTPException(status_code=400, detail="Invalid role")
     hashed_pw = hash_password(user.password)
@@ -58,12 +71,26 @@ async def register_user(user: UserCreate):
     new_user["id"] = str(result.inserted_id)  # Ensure the field 'id' exists
     return UserResponse(**new_user)
 
+=======
+
+    hashed_pw = hash_password(user.password)
+    new_user = {"name": user.name, "email": user.email, "password": hashed_pw}
+
+    result = await users.insert_one(new_user)
+    new_user["_id"] = str(result.inserted_id)  # Convert ObjectId to string
+
+    return UserResponse(id=new_user["_id"], name=new_user["name"], email=new_user["email"])
+
+# Login User
+>>>>>>> parent of e26d513 (adding Admin to database)
 @app.post("/api/login", response_model=Token)
-async def login_user(user: UserLogin):
+async def login_user(user: UserCreate):
     users = await get_user_collection()
     db_user = await users.find_one({"email": user.email})
+
     if not db_user or not verify_password(user.password, db_user["password"]):
         raise HTTPException(status_code=400, detail="Invalid credentials")
+<<<<<<< HEAD
     access_token = create_access_token(
         {"sub": db_user["email"], "role": db_user["role"]},
         expires_delta=timedelta(minutes=30)
@@ -312,3 +339,8 @@ async def update_application_status(application_id: str, status: str, user: dict
 
 =======
 >>>>>>> parent of e9a4337 (job and student profile)
+=======
+
+    access_token = create_access_token({"sub": db_user["email"]}, expires_delta=timedelta(minutes=30))
+    return {"access_token": access_token, "token_type": "bearer"}
+>>>>>>> parent of e26d513 (adding Admin to database)
