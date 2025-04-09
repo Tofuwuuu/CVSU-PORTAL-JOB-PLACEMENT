@@ -11,12 +11,6 @@ from typing import List, Optional
 
 
 
-
-
-# Dummy blockchain verification function and model
-class VerificationRequest(BaseModel):
-    alumni_id: str
-
 def dummy_blockchain_verification(alumni_id: str):
     if alumni_id:
         return {"result": "success", "alumni_id": alumni_id, "message": "Alumni verified on blockchain"}
@@ -174,9 +168,7 @@ async def apply_for_job(application: ApplicationModel, user: dict = Depends(get_
     
     applications = await get_application_collection()
     # Exclude applicant_email from the input so MongoDB doesn't get a null value
-    # Exclude applicant_email from the input so MongoDB doesn't get a null value
     application_data = application.dict(exclude={"applicant_email"}, exclude_unset=True)
-    # Auto-populate applicant_email using the user's email from the token
     # Auto-populate applicant_email using the user's email from the token
     application_data["applicant_email"] = user["email"]
     
@@ -248,8 +240,6 @@ async def get_applications_for_job(job_id: str, user: dict = Depends(get_current
     for app in app_list:
         app["id"] = str(app["_id"])
         app.pop("_id", None)
-        app["id"] = str(app["_id"])
-        app.pop("_id", None)
     return app_list
 
 @app.get("/api/employer/jobs", response_model=List[JobModel])
@@ -288,11 +278,8 @@ async def get_job_stats(user: dict = Depends(get_current_user)):
 # Example: Update application status endpoint for employers
 @app.put("/api/employer/application/{application_id}/status")
 async def update_application_status(application_id: str, status: str, user: dict = Depends(get_current_user)):
-async def update_application_status(application_id: str, status: str, user: dict = Depends(get_current_user)):
     if user.get("role") != "employer":
         raise HTTPException(status_code=403, detail="Access forbidden: Only employers can update application status")
-    
-    if status not in ["accepted", "declined"]:
     if status not in ["accepted", "declined"]:
         raise HTTPException(status_code=400, detail="Status must be either 'accepted' or 'declined'")
     
@@ -304,4 +291,4 @@ async def update_application_status(application_id: str, status: str, user: dict
         raise HTTPException(status_code=404, detail="Application not found or status unchanged")
     
     return {"message": f"Application status updated to {status}"}
-    return {"message": f"Application status updated to {status}"}
+

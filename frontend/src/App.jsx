@@ -9,6 +9,10 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import JobPostings from "./pages/JobPostings";
+<<<<<<< HEAD
+=======
+import JobApplications from "./pages/JobApplications";
+>>>>>>> parent of e9a4337 (job and student profile)
 import EmployerDashboard from "./pages/EmployerDashboard";  // Ensure correct import
 
 function App() {
