@@ -9,7 +9,6 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import JobPostings from "./pages/JobPostings";
-import JobApplications from "./pages/JobApplications";
 import EmployerDashboard from "./pages/EmployerDashboard";  // Ensure correct import
 
 function App() {
