@@ -9,14 +9,7 @@ from app.auth import hash_password, verify_password, create_access_token, get_cu
 from pydantic import BaseModel
 from typing import List, Optional
 
-# Define the model for updating application status
-class UpdateStatusRequest(BaseModel):
-    status: str
 
-
-# Dummy blockchain verification function and model
-class VerificationRequest(BaseModel):
-    alumni_id: str
 
 def dummy_blockchain_verification(alumni_id: str):
     if alumni_id:
@@ -282,29 +275,17 @@ async def get_job_stats(user: dict = Depends(get_current_user)):
 
 # Example: Update application status endpoint for employers
 @app.put("/api/employer/application/{application_id}/status")
-async def update_application_status(
-    application_id: str,
-    update: UpdateStatusRequest,
-    user: dict = Depends(get_current_user)
-):
-    # Only allow employers to update application status
+async def update_application_status(application_id: str, status: str, user: dict = Depends(get_current_user)):
     if user.get("role") != "employer":
         raise HTTPException(status_code=403, detail="Access forbidden: Only employers can update application status")
     
-    # Validate status value
-    if update.status not in ["accepted", "declined"]:
+    if status not in ["accepted", "declined"]:
         raise HTTPException(status_code=400, detail="Status must be either 'accepted' or 'declined'")
     
     applications = await get_application_collection()
-    try:
-        result = await applications.update_one(
-            {"_id": ObjectId(application_id)},
-            {"$set": {"status": update.status}}
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    result = await applications.update_one({"_id": ObjectId(application_id)}, {"$set": {"status": status}})
     
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Application not found or status unchanged")
     
-    return {"message": f"Application status updated to {update.status}"}
+    return {"message": f"Application status updated to {status}"}

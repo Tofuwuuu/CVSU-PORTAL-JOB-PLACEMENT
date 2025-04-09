@@ -12,20 +12,19 @@ import {
   Paper,
   Button,
   Collapse,
-  IconButton,
   Snackbar,
   Alert,
-  CircularProgress,
-  Box,
+  IconButton,
 } from "@mui/material";
-import { Link } from "react-router-dom";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import { getToken } from "../auth";
-import { AuthContext } from "../context/AuthContext";
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 
-const EmployerDashboard = () => {
-  const [jobs, setJobs] = useState([]);
+function EmployerDashboard() {
+  const [jobStats, setJobStats] = useState([]);
+  // Map to store which job's applications are expanded
+  const [expandedJobs, setExpandedJobs] = useState({});
+  // Store applications for each job, keyed by job_id
   const [jobApplications, setJobApplications] = useState({});
   const [expandedJobs, setExpandedJobs] = useState({});
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
@@ -33,20 +32,13 @@ const EmployerDashboard = () => {
   const token = getToken();
   const { role } = useContext(AuthContext);
 
-  // Fetch job postings for the employer
-  const loadJobs = async () => {
+  // Load job statistics (job postings by this employer)
+  const loadJobStats = async () => {
     try {
       const response = await axios.get("http://127.0.0.1:8000/api/employer/jobs", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Ensure each job has a proper id field (either job.id or job._id)
-      const jobsData = response.data.map((job) => ({
-        id: job.id || job._id,
-        title: job.title,
-        company: job.company,
-        location: job.location,
-      }));
-      setJobs(jobsData);
+      setJobStats(response.data);
     } catch (error) {
       console.error("Error loading job postings:", error);
       setSnackbar({ open: true, message: "Failed to load job postings", severity: "error" });
@@ -55,37 +47,35 @@ const EmployerDashboard = () => {
     }
   };
 
-  // Load job applications for a specific job
-  const loadJobApplications = async (jobId) => {
-    try {
-      const response = await axios.get(`http://127.0.0.1:8000/api/employer/applications/${jobId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      // Ensure that each application object has an "id" property
-      const applicationsData = response.data.map((app) => ({
-        id: app.id || app._id,
-        applicant_email: app.applicant_email,
-        cover_letter: app.cover_letter,
-        status: app.status,
-      }));
-      setJobApplications((prev) => ({ ...prev, [jobId]: applicationsData }));
-    } catch (error) {
-      console.error(`Error loading applications for job ${jobId}:`, error);
-      setSnackbar({ open: true, message: "Failed to load applications", severity: "error" });
+  // Toggle the collapse for a specific job to load and show its applications
+  const toggleApplications = async (job_id) => {
+    const isExpanded = expandedJobs[job_id];
+    if (isExpanded) {
+      // Collapse the section
+      setExpandedJobs({ ...expandedJobs, [job_id]: false });
+    } else {
+      // Expand the section and fetch applications if not already loaded
+      if (!jobApplications[job_id]) {
+        try {
+          const response = await axios.get(`http://127.0.0.1:8000/api/employer/applications/${job_id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setJobApplications({ ...jobApplications, [job_id]: response.data });
+        } catch (error) {
+          console.error("Error loading applications for job", job_id, error);
+          setSnackbar({
+            open: true,
+            message: "Failed to load applications for this job",
+            severity: "error",
+          });
+        }
+      }
+      setExpandedJobs({ ...expandedJobs, [job_id]: true });
     }
   };
 
-  // Toggle applications collapse per job
-  const toggleApplications = (jobId) => {
-    if (!expandedJobs[jobId]) {
-      loadJobApplications(jobId);
-    }
-    setExpandedJobs((prev) => ({ ...prev, [jobId]: !prev[jobId] }));
-  };
-
-  // Update application status (Accept/Decline)
-  const updateStatus = async (applicationId, newStatus, jobId) => {
-    console.log("Updating status for application:", applicationId, "New status:", newStatus);
+  // Function to update the application status (accept/decline)
+  const updateStatus = async (applicationId, newStatus, job_id) => {
     try {
       await axios.put(
         `http://127.0.0.1:8000/api/employer/application/${applicationId}/status`,
@@ -97,17 +87,22 @@ const EmployerDashboard = () => {
           },
         }
       );
-      setSnackbar({ open: true, message: "Application status updated", severity: "success" });
-      // Reload applications for this job after updating
-      loadJobApplications(jobId);
+      setSnackbar({ open: true, message: response.data.message, severity: "success" });
+      loadApplications(); // Refresh the applications after status update
     } catch (error) {
       console.error("Error updating application status:", error);
+      // If error.response.data.detail is an object, convert it to a string
       const errDetail = error.response?.data?.detail;
-      const errMsg = typeof errDetail === "object" ? JSON.stringify(errDetail) : errDetail || error.message;
-      setSnackbar({ open: true, message: "Status update failed: " + errMsg, severity: "error" });
+      const errMsg =
+        typeof errDetail === "object" ? JSON.stringify(errDetail) : errDetail || error.message;
+      setSnackbar({
+        open: true,
+        message: "Status update failed: " + errMsg,
+        severity: "error",
+      });
     }
   };
-
+  
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
   };
@@ -128,90 +123,101 @@ const EmployerDashboard = () => {
   return (
     <Container sx={{ mt: 4 }}>
       <Typography variant="h4" gutterBottom>Employer Dashboard</Typography>
+      <Typography variant="subtitle1" gutterBottom>Your Job Postings and Application Statistics</Typography>
       
-      {jobs.map((job) => (
-        <Paper key={job.id} sx={{ p: 3, mb: 3 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Box>
-              <Typography variant="h6">{job.title}</Typography>
-              <Typography variant="subtitle1" color="text.secondary">{job.company} — {job.location}</Typography>
-            </Box>
-            <Box>
-              <Button variant="outlined" sx={{ mr: 2 }} onClick={() => toggleApplications(job.id)}>
-                {expandedJobs[job.id] ? "Hide Applications" : "View Applications"}
-              </Button>
-            </Box>
-          </Box>
-
-          <Collapse in={expandedJobs[job.id]} timeout="auto" unmountOnExit>
-            <Paper sx={{ mt: 2, p: 2 }}>
-              <Typography variant="h6" gutterBottom>Applications for Job ID: {job.id}</Typography>
-              {jobApplications[job.id] && jobApplications[job.id].length > 0 ? (
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Application ID</TableCell>
-                        <TableCell>Applicant Email</TableCell>
-                        <TableCell>Cover Letter</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell align="center">Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {jobApplications[job.id].map((app) => {
-                        // Use fallback in case app.id is missing
-                        const applicationId = app.id || app._id;
-                        console.log("Application object:", app, "Using ID:", applicationId);
-                        return (
-                          <TableRow key={applicationId}>
-                            <TableCell>{applicationId}</TableCell>
-                            <TableCell>{app.applicant_email}</TableCell>
-                            <TableCell>{app.cover_letter}</TableCell>
-                            <TableCell>{app.status}</TableCell>
-                            <TableCell align="center">
-                              <Button
-                                variant="contained"
-                                color="success"
-                                size="small"
-                                onClick={() => updateStatus(applicationId, "accepted", job.id)}
-                                sx={{ mr: 1 }}
-                              >
-                                Accept
-                              </Button>
-                              <Button
-                                variant="contained"
-                                color="error"
-                                size="small"
-                                onClick={() => updateStatus(applicationId, "declined", job.id)}
-                              >
-                                Decline
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              ) : (
-                <Typography variant="body2">No applications found.</Typography>
-              )}
-            </Paper>
-          </Collapse>
-
-          {/* Optional: Add a View Details button for job info (if needed) */}
-          <Box sx={{ mt: 2 }}>
-            <Button
-              variant="outlined"
-              component={Link}
-              to={`/job/${job.id}`}
-            >
-              View Job Details
-            </Button>
-          </Box>
-        </Paper>
-      ))}
+      <TableContainer component={Paper} style={{ marginTop: "20px" }}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell />
+              <TableCell>Job ID</TableCell>
+              <TableCell>Title</TableCell>
+              <TableCell>Applications Received</TableCell>
+              <TableCell>View Applications</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {jobStats.map((job) => (
+              <React.Fragment key={job.job_id}>
+                <TableRow>
+                  <TableCell>
+                    <IconButton
+                      aria-label="expand row"
+                      size="small"
+                      onClick={() => toggleApplications(job.job_id)}
+                    >
+                      {expandedJobs[job.job_id] ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                    </IconButton>
+                  </TableCell>
+                  <TableCell>{job.job_id}</TableCell>
+                  <TableCell>{job.title}</TableCell>
+                  <TableCell>{job.applications_count}</TableCell>
+                  <TableCell>
+                    <Button variant="contained" onClick={() => toggleApplications(job.job_id)}>
+                      {expandedJobs[job.job_id] ? "Hide Applications" : "View Applications"}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
+                    <Collapse in={expandedJobs[job.job_id]} timeout="auto" unmountOnExit>
+                      <Paper style={{ margin: "16px", padding: "16px" }}>
+                        <Typography variant="h6" gutterBottom>
+                          Applications for Job ID: {job.job_id}
+                        </Typography>
+                        {jobApplications[job.job_id] && jobApplications[job.job_id].length > 0 ? (
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Application ID</TableCell>
+                                <TableCell>Applicant Email</TableCell>
+                                <TableCell>Cover Letter</TableCell>
+                                <TableCell>Status</TableCell>
+                                <TableCell>Actions</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {jobApplications[job.job_id].map((app) => (
+                                <TableRow key={app.id}>
+                                  <TableCell>{app.id}</TableCell>
+                                  <TableCell>{app.applicant_email}</TableCell>
+                                  <TableCell>{app.cover_letter}</TableCell>
+                                  <TableCell>{app.status}</TableCell>
+                                  <TableCell>
+                                    <Button
+                                      variant="contained"
+                                      color="success"
+                                      size="small"
+                                      onClick={() => updateStatus(app.id, "accepted", job.job_id)}
+                                      style={{ marginRight: "8px" }}
+                                    >
+                                      Accept
+                                    </Button>
+                                    <Button
+                                      variant="contained"
+                                      color="error"
+                                      size="small"
+                                      onClick={() => updateStatus(app.id, "declined", job.job_id)}
+                                    >
+                                      Decline
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <Typography variant="body2">No applications found.</Typography>
+                        )}
+                      </Paper>
+                    </Collapse>
+                  </TableCell>
+                </TableRow>
+              </React.Fragment>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       <Snackbar
         open={snackbar.open}
