@@ -12,6 +12,9 @@ import JobPostings from "./pages/JobPostings";
 <<<<<<< HEAD
 =======
 import JobApplications from "./pages/JobApplications";
+<<<<<<< HEAD
+>>>>>>> parent of e9a4337 (job and student profile)
+=======
 >>>>>>> parent of e9a4337 (job and student profile)
 import EmployerDashboard from "./pages/EmployerDashboard";  // Ensure correct import
 

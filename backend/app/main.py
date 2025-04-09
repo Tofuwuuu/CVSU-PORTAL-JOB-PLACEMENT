@@ -8,6 +8,10 @@ from app.models import UserCreate, UserLogin, UserResponse, Token, JobModel, App
 from app.auth import hash_password, verify_password, create_access_token, get_current_user
 from pydantic import BaseModel
 from typing import List, Optional
+<<<<<<< HEAD
+=======
+
+>>>>>>> parent of e9a4337 (job and student profile)
 
 
 
@@ -172,7 +176,10 @@ async def apply_for_job(application: ApplicationModel, user: dict = Depends(get_
     # Auto-populate applicant_email using the user's email from the token
     application_data["applicant_email"] = user["email"]
     
+<<<<<<< HEAD
     
+=======
+>>>>>>> parent of e9a4337 (job and student profile)
     result = await applications.insert_one(application_data)
     application.id = str(result.inserted_id)
     application.applicant_email = user["email"]
@@ -180,7 +187,10 @@ async def apply_for_job(application: ApplicationModel, user: dict = Depends(get_
 
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of e9a4337 (job and student profile)
 @app.post("/api/admin/create_employer", response_model=UserResponse)
 async def create_employer(user: UserCreate, current_user: dict = Depends(get_current_user)):
     # Only allow this if the current user is an admin
@@ -280,15 +290,25 @@ async def get_job_stats(user: dict = Depends(get_current_user)):
 async def update_application_status(application_id: str, status: str, user: dict = Depends(get_current_user)):
     if user.get("role") != "employer":
         raise HTTPException(status_code=403, detail="Access forbidden: Only employers can update application status")
+<<<<<<< HEAD
+=======
+    
+>>>>>>> parent of e9a4337 (job and student profile)
     if status not in ["accepted", "declined"]:
         raise HTTPException(status_code=400, detail="Status must be either 'accepted' or 'declined'")
     
     applications = await get_application_collection()
     result = await applications.update_one({"_id": ObjectId(application_id)}, {"$set": {"status": status}})
+<<<<<<< HEAD
     result = await applications.update_one({"_id": ObjectId(application_id)}, {"$set": {"status": status}})
+=======
+>>>>>>> parent of e9a4337 (job and student profile)
     
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Application not found or status unchanged")
     
     return {"message": f"Application status updated to {status}"}
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of e9a4337 (job and student profile)
