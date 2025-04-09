@@ -6,12 +6,13 @@ import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";           // Student dashboard
-import AdminDashboard from "./pages/AdminDashboard";   // Admin dashboard
-import EmployerDashboard from "./pages/EmployerDashboard"; // Employer dashboard
-import JobPostings from "./pages/JobPostings";           // Job postings page (list of jobs)
-import StudentProfile from "./pages/StudentProfile";     // Student profile page
-import ApplyJob from "./pages/ApplyJob";                 // Job application submission page
+import Dashboard from "./pages/Dashboard";
+import AdminDashboard from "./pages/AdminDashboard";
+import JobPostings from "./pages/JobPostings";
+import JobApplications from "./pages/JobApplications";
+import EmployerDashboard from "./pages/EmployerDashboard";
+import StudentProfile from "./pages/StudentProfile";
+import JobDetail from "./pages/JobDetail"; // Import the new component
 
 function App() {
   const { isAuthenticated, role } = useContext(AuthContext);
@@ -70,27 +71,24 @@ function App() {
           path="/profile"
           element={isAuthenticated && role === "user" ? <StudentProfile /> : <Navigate to="/login" />}
         />
-
-        {/* Protected Routes for Admin */}
         <Route
           path="/admin"
           element={isAuthenticated && role === "admin" ? <AdminDashboard /> : <Navigate to="/dashboard" />}
         />
-
-        {/* Protected Routes for Employers */}
+        <Route
+          path="/jobs"
+          element={isAuthenticated && (role === "employer" || role === "user") ? <JobPostings /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/applications"
+          element={isAuthenticated && role === "user" ? <JobApplications /> : <Navigate to="/dashboard" />}
+        />
         <Route
           path="/employer/dashboard"
           element={isAuthenticated && role === "employer" ? <EmployerDashboard /> : <Navigate to="/login" />}
         />
-
-        {/* Job Postings (Accessible by any authenticated user) */}
-        <Route path="/jobs" element={isAuthenticated ? <JobPostings /> : <Navigate to="/login" />} />
-
-        {/* Job Application Submission Page (for students) */}
-        <Route
-          path="/apply/:jobId"
-          element={isAuthenticated && role === "user" ? <ApplyJob /> : <Navigate to="/login" />}
-        />
+        {/* New Detailed Job View Route */}
+        <Route path="/job/:jobId" element={<JobDetail />} />
 
         {/* Catch-All */}
         <Route path="*" element={<Navigate to="/" />} />
